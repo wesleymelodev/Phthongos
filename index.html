@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transdutor de Sintonia Vibratória V4 - Cypher 1078</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 420px;
+        }
+        input[type="text"] {
+            width: 85%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #555;
+            background: #2b2b2b;
+            color: #fff;
+            text-align: center;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .control-group {
+            width: 90%;
+            margin: 15px auto 25px auto;
+            text-align: left;
+        }
+        .control-group label {
+            font-size: 12px;
+            color: #00ffcc;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        input[type="range"] {
+            width: 100%;
+            background: #2b2b2b;
+            accent-color: #5d00b3;
+            cursor: pointer;
+            height: 6px;
+            border-radius: 3px;
+        }
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            margin: 0 auto;
+            gap: 10px;
+        }
+        button {
+            padding: 12px;
+            font-size: 14px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+            transition: background 0.2s;
+        }
+        .btn-transmitir {
+            background-color: #5d00b3;
+        }
+        .btn-transmitir:hover {
+            background-color: #7a00e6;
+        }
+        .btn-baixar {
+            background-color: #008b8b;
+        }
+        .btn-baixar:hover {
+            background-color: #00aaaa;
+        }
+        #canvas-vibratorio {
+            width: 100%;
+            height: 150px;
+            margin-top: 20px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            transition: background-color 0.05s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 5px rgba(0,0,0,0.8);
+        }
+        #output-dados {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #00ffcc;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>MATRIZ CYPHER: V4 (CORRIGIDA)</h2>
+    <input type="text" id="input-texto" placeholder="Digite palavras" value="LOKI NEFRIUS">
+    
+    <div class="control-group">
+        <label for="input-velocidade">
+            <span>VELOCIDADE (PASSO)</span>
+            <span id="val-velocidade">400 ms</span>
+        </label>
+        <input type="range" id="input-velocidade" min="100" max="2000" value="400" step="50" oninput="atualizarVelocidadeLabel(this.value)">
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-transmitir" onclick="executarTransducao()">TRANSMITIR</button>
+        <button class="btn-baixar" onclick="baixarSinalAudio()">BAIXAR ÁUDIO</button>
+    </div>
+    
+    <div id="canvas-vibratorio">AGUARDANDO</div>
+    <div id="output-dados">Matriz Numérica: --</div>
+</div>
+
+<script>
+    const mapaLetraNumero = {
+        'A':1, 'J':1, 'S':1, 'B':2, 'K':2, 'T':2, 'C':3, 'L':3, 'U':3,
+        'D':4, 'M':4, 'V':4, 'E':5, 'N':5, 'W':5, 'F':6, 'O':6, 'X':6,
+        'G':7, 'P':7, 'Y':7, 'H':8, 'Q':8, 'Z':8, 'I':9, 'R':9
+    };
+
+    const mapaMatriz = {
+        1: { nota: 261.63, cor: '#FF0000', nomeNota: 'Dó (C4)' },
+        2: { nota: 293.66, cor: '#FF7F00', nomeNota: 'Ré (D4)' },
+        3: { nota: 329.63, cor: '#FFFF00', nomeNota: 'Mi (E4)' },
+        4: { nota: 349.23, cor: '#00FF00', nomeNota: 'Fá (F4)' },
+        5: { nota: 392.00, cor: '#00FFFF', nomeNota: 'Sol (G4)' },
+        6: { nota: 440.00, cor: '#0000FF', nomeNota: 'Lá (A4)' },
+        7: { nota: 493.88, cor: '#4B0082', nomeNota: 'Si (B4)' },
+        8: { nota: 523.25, cor: '#FF1493', nomeNota: 'Dó (C5)' },
+        9: { nota: 587.33, cor: '#FF00FF', nomeNota: 'Ré (D5)' }
+    };
+
+    let audioCtx = null;
+
+    function atualizarVelocidadeLabel(valor) {
+        document.getElementById('val-velocidade').innerText = `${valor} ms`;
+    }
+
+    function obterTextoLimpo() {
+        return document.getElementById('input-texto').value.toUpperCase().replace(/[^A-Z ]/g, '');
+    }
+
+    function gerarArrayMatriz(texto) {
+        const dados = [];
+        for (let i = 0; i < texto.length; i++) {
+            if (texto[i] === ' ') {
+                dados.push({ char: ' ', num: ' ', nota: null, cor: '#1e1e1e', nomeNota: 'Pausa' });
+            } else if (mapaLetraNumero[texto[i]]) {
+                const num = mapaLetraNumero[texto[i]];
+                dados.push({ char: texto[i], num: num, ...mapaMatriz[num] });
+            }
+        }
+        return dados;
+    }
+
+    function executarTransducao() {
+        // Inicializa ou reativa o contexto de áudio em tempo de execução
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } else if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        const texto = obterTextoLimpo();
+        if (texto.length === 0) return;
+
+        const matrizSinal = gerarArrayMatriz(texto);
+        document.getElementById('output-dados').innerText = `Matriz Numérica: ${matrizSinal.map(d => d.num).join('')}`;
+        
+        // Dispara a execução sequencial corrigida
+        executarSequencia(matrizSinal, 0);
+    }
+
+    // Correção ortográfica do loop de execução (V3 continha 'ejecutarSequencia')
+    function executarSequencia(matrizSinal, index) {
+        const intervaloAtual = parseInt(document.getElementById('input-velocidade').value);
+
+        if (index >= matrizSinal.length) {
+            setTimeout(() => {
+                const canvas = document.getElementById('canvas-vibratorio');
+                canvas.style.backgroundColor = '#1e1e1e';
+                canvas.innerText = 'CONCLUÍDO';
+            }, intervaloAtual);
+            return;
+        }
+
+        const item = matrizSinal[index];
+        const canvas = document.getElementById('canvas-vibratorio');
+        canvas.style.backgroundColor = item.cor;
+        
+        if (item.nota) {
+            canvas.innerText = `${item.char} (${item.num}) -> ${item.nomeNota}`;
+            const duracaoNota = (intervaloAtual / 1000) * 0.85;
+            tocarNota(item.nota, duracaoNota);
+        } else {
+            canvas.innerText = `[ESPAÇO] -> Pausa`;
+        }
+
+        setTimeout(() => {
+            executarSequencia(matrizSinal, index + 1);
+        }, intervaloAtual);
+    }
+
+    function tocarNota(frequencia, duracao) {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(frequencia, audioCtx.currentTime);
+        
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duracao);
+
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duracao);
+    }
+
+    // ==========================================
+    // MOTOR DE COMPILAÇÃO E DOWNLOAD DE ÁUDIO (WAV)
+    // ==========================================
+    function baixarSinalAudio() {
+        const textoOriginal = document.getElementById('input-texto').value;
+        const textoLimpo = obterTextoLimpo();
+        if (textoLimpo.length === 0) return;
+
+        const matrizSinal = gerarArrayMatriz(textoLimpo);
+        const intervaloAtual = parseInt(document.getElementById('input-velocidade').value);
+        const passoSegundos = intervaloAtual / 1000;
+        const duracaoNota = passoSegundos * 0.85;
+        
+        const sampleRate = 44100;
+        const totalDuracao = (matrizSinal.length * passoSegundos) + 0.1;
+
+        const offlineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * totalDuracao), sampleRate);
+
+        matrizSinal.forEach((item, index) => {
+            if (item.nota) {
+                const startTime = index * passoSegundos;
+                const osc = offlineCtx.createOscillator();
+                const gainNode = offlineCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(item.nota, startTime);
+
+                gainNode.gain.setValueAtTime(0.3, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duracaoNota);
+
+                osc.connect(gainNode);
+                gainNode.connect(offlineCtx.destination);
+
+                osc.start(startTime);
+                osc.stop(startTime + duracaoNota);
+            }
+        });
+
+        document.getElementById('canvas-vibratorio').innerText = "COMPILANDO...";
+
+        offlineCtx.startRendering().then(bufferRenderizado => {
+            const blobWav = exportarBufferParaWav(bufferRenderizado);
+            const url = URL.createObjectURL(blobWav);
+            
+            const linkDownload = document.createElement('a');
+            linkDownload.href = url;
+            linkDownload.download = `${textoOriginal}.wav`;
+            document.body.appendChild(linkDownload);
+            linkDownload.click();
+            document.body.removeChild(linkDownload);
+            URL.revokeObjectURL(url);
+
+            document.getElementById('canvas-vibratorio').innerText = "DOWNLOAD PRONTO";
+        });
+    }
+
+    function exportarBufferParaWav(audioBuffer) {
+        const numCanais = audioBuffer.numberOfChannels;
+        const taxaAmostragem = audioBuffer.sampleRate;
+        const formatoFormatado = 1; 
+        const bitsPorAmostra = 16;
+        
+        let canalData = audioBuffer.getChannelData(0); 
+        let bufferWav = new ArrayBuffer(44 + canalData.length * 2);
+        let view = new DataView(bufferWav);
+
+        escreverString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + canalData.length * 2, true);
+        escreverString(view, 8, 'WAVE');
+        escreverString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, formatoFormatado, true);
+        view.setUint16(22, numCanais, true);
+        view.setUint32(24, taxaAmostragem, true);
+        view.setUint32(28, taxaAmostragem * numCanais * (bitsPorAmostra / 8), true);
+        view.setUint16(32, numCanais * (bitsPorAmostra / 8), true);
+        view.setUint16(34, bitsPorAmostra, true);
+        escreverString(view, 36, 'data');
+        view.setUint32(40, canalData.length * 2, true);
+
+        let index = 44;
+        for (let i = 0; i < canalData.length; i++) {
+            let amostra = Math.max(-1, Math.min(1, canalData[i]));
+            amostra = amostra < 0 ? amostra * 0x8000 : amostra * 0x7FFF;
+            view.setInt16(index, amostra, true);
+            index += 2;
+        }
+
+        return new Blob([bufferWav], { type: 'audio/wav' });
+    }
+
+    function escreverString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    }
+</script>
+
+</body>
+</html>
