@@ -3,77 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transdutor de Sintonia Vibratória V4 - Cypher 1078</title>
+    <title>Transdutor de Sintonia Vibratória V5.1 - Cypher 1078</title>
+    
     <style>
+        /* Reset de tela e configurações de exibição fixa */
         body {
-            background-color: #121212;
+            background-color: #0c0c0c;
             color: #ffffff;
             font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Elimina barras de rolagem */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
-            margin: 0;
+            width: 100vw;
         }
-        .container {
+
+        /* Canvas de Fundo Absoluto (Tela Cheia) */
+        #canvas-vibratorio {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+            z-index: 1; /* Posicionado atrás da interface de controle */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: top;
+            /* Transição suave padrão que será manipulada pelo motor JS */
+            transition: background-color 0.05s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        /* Efeito visual luminoso aplicado à letra que está vibrando no clock atual */
+        .letra-ativa {
+            color: rgba(255, 255, 255, 1.0);
+            font-size: 2.6rem;
+            text-shadow: 0 0 15px #00ffcc, 2px 2px 5px #000;
+            font-weight: bold;
+            display: inline-block;
+            transform: scale(1.2);
+            margin: 0 4px;
+            transition: all 0.1s ease;
+        }
+
+         /* Caractere em foco centralizado (CORRIGIDO: Não é mais gigante) */
+        .projecao-foco {
+            font-size: 1.5rem; /* Corrigido de 8rem para 3.5rem */
+            font-weight: bold;
+            text-shadow: 0px 4px 15px rgba(0,0,0,0.9), 0 0 20px rgba(255,255,255,0.15);
+            margin-top: 20px;
+            margin-bottom: 5px;
+            letter-spacing: 4px;
+            height: 4.5rem;    /* Ajustado de 10rem para 4.5rem para acompanhar a fonte */
+            display: flex;
+            align-items: center;
             text-align: center;
-            background: #1e1e1e;
-            padding: 30px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            width: 420px;
+            justify-content: center;
+            z-index: 2;
         }
-        input[type="text"] {
-            width: 85%;
-            padding: 10px;
+
+        /* Exibição da frase completa abaixo do caractere em foco */
+        .projecao-frase {
+            font-size: 1.8rem;
+            font-weight: 500;
+            text-align: center;
+            max-width: 90%;
+            word-wrap: break-word;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
+            line-height: 2.5rem;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 2;
+        }
+
+        /* Painel flutuante de controle com Glassmorphism (Efeito Vidro) */
+        .container-controle {
+            position: fixed;             /* ALTERADO: De relative para fixed */
+            bottom: 25px;                /* ADICIONADO: Distância de 25px da borda inferior */
+            left: 50%;                   /* ADICIONADO: Move o painel para o meio horizontal da tela */
+            transform: translateX(-50%); /* ADICIONADO: Ajusta o eixo para centralizar perfeitamente */
+            
+            z-index: 10; /* Garante que os controles fiquem clicáveis sobre o Canvas */
+            text-align: center;
+            background: rgba(25, 25, 25, 0.20);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+            width: 400px;
+            height: 200px;
+            /* AJUSTE: Reduzido para 0.1s para o tom vibrante puro entrar na tela sem criar cores intermediárias foscas */
+            transition: background-color 0.1s ease-out;
+            opacity: 0.50; /* Leve transparência para efeito de vidro */
+        }
+
+        .container-controle:hover {
+            background: rgba(25, 25, 25, 0.20);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h2 {
             font-size: 16px;
-            border: 1px solid #555;
-            background: #2b2b2b;
+            letter-spacing: 2px;
+            margin-top: 0;
+            color: #b3b3b3;
+        }
+
+        /* Inputs de Digitação */
+        input[type="text"] {
+            width: 88%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #444;
+            background: rgba(40, 40, 40, 0.6);
             color: #fff;
             text-align: center;
             text-transform: uppercase;
             margin-bottom: 15px;
-            border-radius: 4px;
+            border-radius: 6px;
+            outline: none;
+            transition: border 0.2s;
         }
+        input[type="text"]:focus {
+            border: 1px solid #5d00b3;
+        }
+
+        /* Barras de Rolagem (Sliders) e Agrupamentos */
         .control-group {
-            width: 90%;
+            width: 92%;
             margin: 15px auto 25px auto;
             text-align: left;
         }
         .control-group label {
-            font-size: 12px;
+            font-size: 11px;
             color: #00ffcc;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
         }
         input[type="range"] {
             width: 100%;
-            background: #2b2b2b;
+            background: #333;
             accent-color: #5d00b3;
             cursor: pointer;
             height: 6px;
             border-radius: 3px;
         }
+
+        /* Bloco de Botões de Ação */
         .btn-group {
             display: flex;
             justify-content: space-between;
-            width: 90%;
+            width: 92%;
             margin: 0 auto;
-            gap: 10px;
+            gap: 12px;
         }
         button {
             padding: 12px;
-            font-size: 14px;
+            font-size: 13px;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            letter-spacing: 1px;
             flex: 1;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:active {
+            transform: scale(0.98);
         }
         .btn-transmitir {
             background-color: #5d00b3;
@@ -87,40 +192,33 @@
         .btn-baixar:hover {
             background-color: #00aaaa;
         }
-        #canvas-vibratorio {
-            width: 100%;
-            height: 150px;
-            margin-top: 20px;
-            border-radius: 4px;
-            border: 1px solid #333;
-            transition: background-color 0.05s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-            text-shadow: 1px 1px 5px rgba(0,0,0,0.8);
-        }
+
+        /* Terminal de telemetria inferior */
         #output-dados {
-            margin-top: 15px;
-            font-size: 14px;
-            color: #00ffcc;
+            margin-top: 18px;
+            font-size: 12px;
+            color: #888;
             word-break: break-all;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>MATRIZ CYPHER: V4 (CORRIGIDA)</h2>
-    <input type="text" id="input-texto" placeholder="Digite palavras" value="LOKI NEFRIUS">
+<div id="canvas-vibratorio">
+    <div class="projecao-foco" id="foco-caractere">AGUARDANDO</div>
+    <div class="projecao-frase" id="foco-frase">Bem-vindo ao Templo Virtual Ancrolyn</div>
+</div>
+
+<div class="container-controle">
+    <h2>MATRIZ PHTHONGOS: A SINFONIA DAS PALAVRAS</h2>
+    <input type="text" id="input-texto" placeholder="Digite frases para ouvir a música" value="PHTHONGOS" oninput="espelharTextoImediato(this.value)">
     
     <div class="control-group">
         <label for="input-velocidade">
-            <span>VELOCIDADE (PASSO)</span>
+            <span>VELOCIDADE DO PASSO</span>
             <span id="val-velocidade">400 ms</span>
         </label>
-        <input type="range" id="input-velocidade" min="100" max="2000" value="400" step="50" oninput="atualizarVelocidadeLabel(this.value)">
+        <input type="range" id="input-velocidade" min="100" max="2000" value="400" step="50" oninput="ajustarVelocidadeControle(this.value)">
     </div>
 
     <div class="btn-group">
@@ -128,44 +226,72 @@
         <button class="btn-baixar" onclick="baixarSinalAudio()">BAIXAR ÁUDIO</button>
     </div>
     
-    <div id="canvas-vibratorio">AGUARDANDO</div>
     <div id="output-dados">Matriz Numérica: --</div>
 </div>
 
 <script>
+    // CORE: Tabela de Gematria Alfanumérica (Inclusão explícita do Ç mapeado em 3)
     const mapaLetraNumero = {
-        'A':1, 'J':1, 'S':1, 'B':2, 'K':2, 'T':2, 'C':3, 'L':3, 'U':3,
+        'A':1, 'J':1, 'S':1, 'B':2, 'K':2, 'T':2, 'C':3, 'Ç':3, 'L':3, 'U':3,
         'D':4, 'M':4, 'V':4, 'E':5, 'N':5, 'W':5, 'F':6, 'O':6, 'X':6,
         'G':7, 'P':7, 'Y':7, 'H':8, 'Q':8, 'Z':8, 'I':9, 'R':9
     };
 
+    // CORE: Frequências senoidais hertzianas e assinaturas de cores cromáticas
     const mapaMatriz = {
-        1: { nota: 261.63, cor: '#FF0000', nomeNota: 'Dó (C4)' },
-        2: { nota: 293.66, cor: '#FF7F00', nomeNota: 'Ré (D4)' },
-        3: { nota: 329.63, cor: '#FFFF00', nomeNota: 'Mi (E4)' },
-        4: { nota: 349.23, cor: '#00FF00', nomeNota: 'Fá (F4)' },
-        5: { nota: 392.00, cor: '#00FFFF', nomeNota: 'Sol (G4)' },
-        6: { nota: 440.00, cor: '#0000FF', nomeNota: 'Lá (A4)' },
-        7: { nota: 493.88, cor: '#4B0082', nomeNota: 'Si (B4)' },
-        8: { nota: 523.25, cor: '#FF1493', nomeNota: 'Dó (C5)' },
-        9: { nota: 587.33, cor: '#FF00FF', nomeNota: 'Ré (D5)' }
+        1: { nota: 261.63, cor: '#7f1d1d', nomeNota: 'Dó (C4)' },
+        2: { nota: 293.66, cor: '#7c2d12', nomeNota: 'Ré (D4)' },
+        3: { nota: 329.63, cor: '#713f12', nomeNota: 'Mi (E4)' },
+        4: { nota: 349.23, cor: '#14532d', nomeNota: 'Fá (F4)' },
+        5: { nota: 392.00, cor: '#155e75', nomeNota: 'Sol (G4)' },
+        6: { nota: 440.00, cor: '#1e3a8a', nomeNota: 'Lá (A4)' },
+        7: { nota: 493.88, cor: '#4c1d95', nomeNota: 'Si (B4)' },
+        8: { nota: 523.25, cor: '#701a75', nomeNota: 'Dó (C5)' },
+        9: { nota: 587.33, cor: '#4c0519', nomeNota: 'Ré (D5)' }
     };
 
+    // Barramento de áudio em tempo real
     let audioCtx = null;
 
-    function atualizarVelocidadeLabel(valor) {
+    // Inicialização automática de amostragem
+    window.onload = () => {
+        espelharTextoImediato(document.getElementById('input-texto').value);
+    };
+
+    // FUNÇÃO: Sincronização e espelhamento em tempo de digitação
+    function espelharTextoImediato(valor) {
+        const fraseCanvas = document.getElementById('foco-frase');
+        if(valor.trim() === "") {
+            fraseCanvas.innerText = "...";
+            return;
+        }
+        fraseCanvas.innerText = valor.toUpperCase();
+    }
+
+    // FUNÇÃO: Monitor do slider de clock
+    function ajustarVelocidadeControle(valor) {
         document.getElementById('val-velocidade').innerText = `${valor} ms`;
     }
 
+    // FUNÇÃO: Sanitização e tratamento adaptativo de acentuações nativas brasileiras
     function obterTextoLimpo() {
-        return document.getElementById('input-texto').value.toUpperCase().replace(/[^A-Z ]/g, '');
+        let texto = document.getElementById('input-texto').value.toUpperCase();
+        // Substitui letras com acentos pelas equivalentes sem alterar o Ç
+        texto = texto.replace(/[ÁÀÂÃ]/g, 'A')
+                     .replace(/[ÉÈÊ]/g, 'E')
+                     .replace(/[ÍÌÎ]/g, 'I')
+                     .replace(/[ÓÒÔÕ]/g, 'O')
+                     .replace(/[ÚÙÛ]/g, 'U');
+        // Filtra mantendo apenas letras básicas de A-Z, o Ç e espaços vazios
+        return texto.replace(/[^A-ZÇ ]/g, '');
     }
 
+    // FUNÇÃO: Compila a cadeia de caracteres em vetores de dados computáveis
     function gerarArrayMatriz(texto) {
         const dados = [];
         for (let i = 0; i < texto.length; i++) {
             if (texto[i] === ' ') {
-                dados.push({ char: ' ', num: ' ', nota: null, cor: '#1e1e1e', nomeNota: 'Pausa' });
+                dados.push({ char: ' ', num: ' ', nota: null, cor: '#121212', nomeNota: 'Pausa' });
             } else if (mapaLetraNumero[texto[i]]) {
                 const num = mapaLetraNumero[texto[i]];
                 dados.push({ char: texto[i], num: num, ...mapaMatriz[num] });
@@ -174,8 +300,15 @@
         return dados;
     }
 
+    // FUNÇÃO: Modulador dinâmico de suavização vetorial de cores baseado na velocidade
+    function aplicarTransicaoDeCoresDinamica(velocidadeMs) {
+        const canvas = document.getElementById('canvas-vibratorio');
+        const tempoTransicao = velocidadeMs * 0.55; // Curva harmônica de transição (75% do passo)
+        canvas.style.transition = `background-color ${tempoTransicao}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+    }
+
+    // CONTROLADOR: Ignição do pipeline de transdução
     function executarTransducao() {
-        // Inicializa ou reativa o contexto de áudio em tempo de execução
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         } else if (audioCtx.state === 'suspended') {
@@ -186,42 +319,65 @@
         if (texto.length === 0) return;
 
         const matrizSinal = gerarArrayMatriz(texto);
+        // Exibe a string numérica no rodapé do controlador
         document.getElementById('output-dados').innerText = `Matriz Numérica: ${matrizSinal.map(d => d.num).join('')}`;
         
-        // Dispara a execução sequencial corrigida
+        // Inicia a execução sequencial iterativa
         executarSequencia(matrizSinal, 0);
     }
 
-    // Correção ortográfica do loop de execução (V3 continha 'ejecutarSequencia')
+    // LOOP: Processador recursivo síncrono da transmissão sensorial
     function executarSequencia(matrizSinal, index) {
         const intervaloAtual = parseInt(document.getElementById('input-velocidade').value);
+        const canvas = document.getElementById('canvas-vibratorio');
+        const focoCaractere = document.getElementById('foco-caractere');
+        const focoFrase = document.getElementById('foco-frase');
 
+        // Modula a transição cromática antes do disparo visual
+        aplicarTransicaoDeCoresDinamica(intervaloAtual);
+
+        // Condição de Encerramento do ciclo da frase
         if (index >= matrizSinal.length) {
             setTimeout(() => {
-                const canvas = document.getElementById('canvas-vibratorio');
-                canvas.style.backgroundColor = '#1e1e1e';
-                canvas.innerText = 'CONCLUÍDO';
+                canvas.style.backgroundColor = '#121212';
+                focoCaractere.innerText = "Bem -vindo ao Templo Virtual Ancrolyn";
+                espelharTextoImediato(document.getElementById('input-texto').value);
             }, intervaloAtual);
             return;
         }
 
         const item = matrizSinal[index];
-        const canvas = document.getElementById('canvas-vibratorio');
         canvas.style.backgroundColor = item.cor;
         
+        // Reconstrói a frase em HTML dando realce neon na letra correspondente ao clock atual
+        let fraseHtmlConstruida = "";
+        for(let i = 0; i < matrizSinal.length; i++) {
+            if(i === index) {
+                fraseHtmlConstruida += `<span class="letra-ativa">${matrizSinal[i].char}</span>`;
+            } else {
+                fraseHtmlConstruida += matrizSinal[i].char;
+            }
+        }
+        focoFrase.innerHTML = fraseHtmlConstruida;
+
+        // Disparo acústico hertziano
         if (item.nota) {
-            canvas.innerText = `${item.char} (${item.num}) -> ${item.nomeNota}`;
+            // CORREÇÃO AQUI: Renderiza apenas a letra pura centralizada, sem os Hz
+            focoCaractere.innerText = item.char; 
+            
             const duracaoNota = (intervaloAtual / 1000) * 0.85;
             tocarNota(item.nota, duracaoNota);
         } else {
-            canvas.innerText = `[ESPAÇO] -> Pausa`;
+            focoCaractere.innerText = "•"; // Símbolo indicador de espaço/pausa no canvas
         }
 
+        // Recursão controlada temporizada pelo clock do slider
         setTimeout(() => {
             executarSequencia(matrizSinal, index + 1);
         }, intervaloAtual);
     }
 
+    // AUDIO: Oscilador senoidal nativo em tempo de execução
     function tocarNota(frequencia, duracao) {
         const osc = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
@@ -240,7 +396,7 @@
     }
 
     // ==========================================
-    // MOTOR DE COMPILAÇÃO E DOWNLOAD DE ÁUDIO (WAV)
+    // SEÇÃO 4: MOTOR OFFLINE DE COMPILAÇÃO WAV
     // ==========================================
     function baixarSinalAudio() {
         const textoOriginal = document.getElementById('input-texto').value;
@@ -277,7 +433,7 @@
             }
         });
 
-        document.getElementById('canvas-vibratorio').innerText = "COMPILANDO...";
+        document.getElementById('foco-caractere').innerText = "COMPILANDO...";
 
         offlineCtx.startRendering().then(bufferRenderizado => {
             const blobWav = exportarBufferParaWav(bufferRenderizado);
@@ -291,10 +447,11 @@
             document.body.removeChild(linkDownload);
             URL.revokeObjectURL(url);
 
-            document.getElementById('canvas-vibratorio').innerText = "DOWNLOAD PRONTO";
+            document.getElementById('foco-caractere').innerText = "BAIXADO";
         });
     }
 
+    // ENCODER BINÁRIO: Estruturação de dados brutos de áudio para contêiner PCM 16-bit WAV
     function exportarBufferParaWav(audioBuffer) {
         const numCanais = audioBuffer.numberOfChannels;
         const taxaAmostragem = audioBuffer.sampleRate;
@@ -305,9 +462,12 @@
         let bufferWav = new ArrayBuffer(44 + canalData.length * 2);
         let view = new DataView(bufferWav);
 
+        // Cabeçalho de Bloco RIFF
         escreverString(view, 0, 'RIFF');
         view.setUint32(4, 36 + canalData.length * 2, true);
         escreverString(view, 8, 'WAVE');
+        
+        // Cabeçalho descritor de formato do sub-bloco
         escreverString(view, 12, 'fmt ');
         view.setUint32(16, 16, true);
         view.setUint16(20, formatoFormatado, true);
@@ -316,9 +476,12 @@
         view.setUint32(28, taxaAmostragem * numCanais * (bitsPorAmostra / 8), true);
         view.setUint16(32, numCanais * (bitsPorAmostra / 8), true);
         view.setUint16(34, bitsPorAmostra, true);
+        
+        // Sub-bloco de dados de áudio binários
         escreverString(view, 36, 'data');
         view.setUint32(40, canalData.length * 2, true);
 
+        // Conversão linear e escrita de amostras PCM em DataView de 16-bits
         let index = 44;
         for (let i = 0; i < canalData.length; i++) {
             let amostra = Math.max(-1, Math.min(1, canalData[i]));
@@ -330,6 +493,7 @@
         return new Blob([bufferWav], { type: 'audio/wav' });
     }
 
+    // AUXILIAR BINÁRIO: Escrita e conversão direta de strings ASCII para DataView
     function escreverString(view, offset, string) {
         for (let i = 0; i < string.length; i++) {
             view.setUint8(offset + i, string.charCodeAt(i));
